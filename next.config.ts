@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // ✅ This disables /app and uses /pages routing
+  experimental: {
+    appDir: false,
+  },
 };
 
 export default nextConfig;
