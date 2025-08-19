@@ -21,12 +21,12 @@ const faqs = [
   { q: "How does Mesh work?", a: "A team manager hosts a private Mesh server. Members join via invite and authenticate using a Google account tied to an admin-approved email. Uploaded content is ingested, summarized, tagged, and connected by AI." },
   { q: "What types of content can I upload?", a: "You can upload PDFs, images, audio files, code, text, notes, links, and meeting recordings. Mesh supports most common formats used by modern teams." },
   { q: "How does the AI organize the content?", a: "Mesh uses LLMs and embeddings to generate summaries and tag content by topic, uploader, team, and timeline. It builds a dynamic knowledge graph linking everything together." },
-  { q: "Is the information searchable?", a: "Yes. You can ask Mesh anything, and its GPT-powered assistant will search your team’s knowledge graph to return relevant answers and sources." },
-  { q: "Who can access the knowledge in Mesh?", a: "Only team members with approved Google accounts can access your Mesh instance. Access is controlled by your admin." },
+  //{ q: "Is the information searchable?", a: "Yes. You can ask Mesh anything, and its GPT-powered assistant will search your team’s knowledge graph to return relevant answers and sources." },
+  //{ q: "Who can access the knowledge in Mesh?", a: "Only team members with approved Google accounts can access your Mesh instance. Access is controlled by your admin." },
   { q: "Is Mesh secure?", a: "Yes. Mesh servers are self-hosted by your team, with strict access control via Google sign-in and admin-approved emails. All data is isolated and encrypted." },
   { q: "Can I use Mesh with my existing tools?", a: "Yes. Mesh supports import and integration with PDFs, code, images, links, meeting recordings, and more." },
-  { q: "Can Mesh replace our wiki or knowledge base?", a: "Yes. Mesh not only replaces traditional wikis but enhances them with automatic tagging, graph linking, and GPT-powered search." },
-  { q: "What makes Mesh different from Notion, Obsidian, or Confluence?", a: "Mesh is hosted privately by your team, uses AI to organize everything automatically, and visualizes knowledge as a browsable multiplayer graph." },
+  //{ q: "Can Mesh replace our wiki or knowledge base?", a: "Yes. Mesh not only replaces traditional wikis but enhances them with automatic tagging, graph linking, and GPT-powered search." },
+  //{ q: "What makes Mesh different from Notion, Obsidian, or Confluence?", a: "Mesh is hosted privately by your team, uses AI to organize everything automatically, and visualizes knowledge as a browsable multiplayer graph." },
   { q: "Can I export or back up my team’s Mesh content?", a: "Yes. Admins can export all uploaded files, summaries, and the knowledge graph at any time." },
 ];
 
@@ -117,7 +117,7 @@ return (
   elementsSelectable={false}
   preventScrolling={false} // You can keep this false if you want the user to scroll the entire landing page
 >
-  <div className="absolute inset-0 z-[-1] bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 animate-gradient-mesh" />
+  <div className="absolute inset-0 z-[-1] bg-gradient-to-br from-purple-200 via-blue-200 to-pink-200 animate-gradient-mesh" />
 
   <Controls showZoom={false} showFitView={false} showInteractive={false} />
 </ReactFlow>
@@ -159,7 +159,7 @@ const LandingPage: FC = () => {
     .animate-gradient-mesh {
       background-size: 400% 400%;
       background-position: 0% 50%;
-      animation: gradient-mesh 3s ease infinite;
+      animation: gradient-mesh 6s ease infinite;
     }
   `}</style>
         <title>Mesh</title>
@@ -211,10 +211,10 @@ const LandingPage: FC = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="w-full bg-gray-100 px-4 py-20 animate-fade-in">
-        <div className="text-2xl md:text-3xl font-bold text-center text-gray-900">
-          Frequently Asked Questions
-        </div>
+      <section className="w-full bg-gradient-to-br from-purple-200 via-blue-200 to-pink-200 animate-gradient-mesh px-4 py-20">
+          <div className="text-2xl md:text-3xl font-bold text-center text-gray-900">
+    Frequently Asked Questions
+  </div>
         <div className="mt-10 max-w-3xl w-full space-y-4 pb-20 mx-auto">
           {faqs.map((faq, i) => (
             <div
@@ -233,7 +233,7 @@ const LandingPage: FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="w-full bg-gray-100 text-black py-6 text-center">
+      <footer className="w-full bg-gray-100 text-gray-500 py-6 text-center">
         <span className="text-sm tracking-wide">&copy; {new Date().getFullYear()} Mesh Intelligence, Inc.</span>
       </footer>
 
@@ -241,7 +241,7 @@ const LandingPage: FC = () => {
       {showTop && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 bg-black text-white p-3 rounded-full shadow-md hover:bg-gray-800 transition"
+          className="fixed bottom-6 right-6 bg-purple text-white p-3 rounded-full shadow-md  transition"
         >↑</button>
       )}
       <style jsx global>{`
