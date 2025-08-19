@@ -18,9 +18,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const { error } = await supabase
-      .from("waitlist")
-      .insert({ email, source, created_at: new Date().toISOString() });
+const { error } = await supabase
+  .from("waitlist_emails")
+  .insert({
+    email,
+    source,
+    metadata: {},   // optional, defaults to '{}'
+    created_at: new Date().toISOString()
+  });
+
 
     if (error) return res.status(500).json({ error: error.message });
 
