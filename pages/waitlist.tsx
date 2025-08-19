@@ -45,15 +45,14 @@ export default function WaitlistPage() {
             100% { background-position: 0% 50%; }
           }
           .animate-gradient-mesh {
-            background: linear-gradient(-45deg, #a18cd1, #fbc2eb, #fad0c4, #ffd1ff);
             background-size: 400% 400%;
             animation: gradient-mesh 8s ease infinite;
           }
         `}</style>
       </Head>
 
-      {/* Gradient background */}
-      <div className="absolute inset-0 animate-gradient-mesh z-0" />
+      {/* Gradient background with -200 colors */}
+      <div className="absolute inset-0 animate-gradient-mesh z-0 bg-gradient-to-br from-purple-200 via-blue-200 to-pink-200" />
 
       {/* Content */}
       <div className="relative z-10 w-full max-w-md bg-white/80 backdrop-blur-lg rounded-2xl p-8 shadow-lg">
@@ -77,7 +76,7 @@ export default function WaitlistPage() {
           <button
             type="submit"
             disabled={status === "loading"}
-            className="bg-black text-white px-4 py-2 rounded-lg font-medium disabled:opacity-70 hover:scale-105 transition"
+            className="bg-black text-white px-6 py-3 rounded-full font-semibold hover:scale-105 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-purple-600 transition duration-300 shadow-lg disabled:opacity-70"
           >
             {status === "loading" ? "Adding..." : "Join"}
           </button>
