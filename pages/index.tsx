@@ -50,26 +50,18 @@ const useTypewriter = (
   const [i, setI] = useState(0);
   const [sub, setSub] = useState(0);
   const [deleting, setDeleting] = useState(false);
-  const [done, setDone] = useState(false);
 
   useEffect(() => {
-    if (done) return;
-
-    const current = phrases[i];
+    const current = phrases[i % phrases.length];
 
     if (!deleting && sub === current.length) {
-      if (i === phrases.length - 1) {
-        // stop at last phrase
-        setDone(true);
-        return;
-      }
       const t = setTimeout(() => setDeleting(true), holdMs);
       return () => clearTimeout(t);
     }
 
     if (deleting && sub === 0) {
       setDeleting(false);
-      setI((v) => v + 1);
+      setI((v) => (v + 1) % phrases.length);
       return;
     }
 
@@ -78,10 +70,10 @@ const useTypewriter = (
     }, deleting ? deletingMs : typingMs);
 
     return () => clearTimeout(t);
-  }, [phrases, i, sub, deleting, typingMs, deletingMs, holdMs, done]);
+  }, [phrases, i, sub, deleting, typingMs, deletingMs, holdMs]);
 
   return {
-    text: phrases[i]?.slice(0, sub),
+    text: phrases[i % phrases.length].slice(0, sub),
     isDeleting: deleting,
   };
 };
@@ -92,15 +84,21 @@ const TypingHeadline: FC = () => {
     "marketing",
     "production",
     "creative",
-    "",
+    "sales",
+    "research & development",
+    "legal",
+    "finance",
+    "product management"
+
   ], { typingMs: 75, deletingMs: 35, holdMs: 1100 });
 
   return (
     <h1 className="text-5xl md:text-6xl font-bold text-center mb-4 text-gray-900 drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)] leading-tight">
-      <div>One smart searchable brain for all your</div>
+      <div>One smart searchable brain for all</div>
       <div>
+        <span className="text-black"> your </span>
         <span className="text-blue-600 inline">{text}<span className="type-cursor">|</span></span>
-        <span className="text-black"> teams.</span>
+        <span className="text-black">teams.</span>
       </div>
     </h1>
   );
@@ -110,7 +108,7 @@ const TypingHeadline: FC = () => {
 const HeroBackgroundFlow = () => {
   const nodeTypes = useMemo(() => ({ custom: EmptyNode }), []);
 
-  const generateRandomNodes = (count = 150) =>
+  const generateRandomNodes = (count = 200) =>
     Array.from({ length: count }, (_, i) => {
       const randomColor = `hsl(${Math.floor(Math.random() * 360)}, 70%, 80%)`;
       const randomSize = Math.floor(Math.random() * 80) + 12;
@@ -200,6 +198,12 @@ const LandingPage: FC = () => {
       100% { background-position: 0% 50%; }
     }
     .animate-gradient-mesh { background-size: 400% 400%; background-position: 0% 50%; animation: gradient-mesh 6s ease infinite; }
+/* add in <style> */
+.noise::after{
+  content:""; position:absolute; inset:0; pointer-events:none; opacity:.05;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width=\"100\" height=\"100\" viewBox=\"0 0 100 100\"><filter id=\"n\"><feTurbulence baseFrequency=\"0.8\" numOctaves=\"2\"/></filter><rect width=\"100%\" height=\"100%\" filter=\"url(%23n)\" opacity=\"0.4\"/></svg>');
+  mix-blend-mode: multiply;
+}
 
     /* blinking cursor */
     @keyframes type-blink { 0%, 49%, 100% { opacity: 1; } 50% { opacity: 0; } }
@@ -207,6 +211,8 @@ const LandingPage: FC = () => {
   `}</style>
         <title>Mesh</title>
         <meta name="description" content="Mesh — AI-powered team knowledge system" />
+        <link rel="icon" href="/logo.png" type="image/png" />
+        <link rel="icon" href="/logo.png" type="image/png" />
       </Head>
 
       {/* Header Nav */}
@@ -221,7 +227,7 @@ const LandingPage: FC = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="w-full min-h-[calc(100vh-64px)] bg-gray-50 relative px-4 py-16 flex flex-col items-center justify-center overflow-hidden animate-fade-in">
+      <section className="w-full min-h-[calc(100vh-64px)] bg-gray-50 relative px-4 py-16 flex flex-col items-center justify-center overflow-hidden animate-fade-in relative noise">
         <HeroBackgroundFlow />
         <div className="relative z-10 flex flex-col items-center">
           <TypingHeadline />
