@@ -79,6 +79,22 @@ const useTypewriter = (
 };
 
 const TypingHeadline: FC = () => {
+  // Detect mobile to slow down typing/backspacing for smoother feel
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      const coarse = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+      setIsMobile(typeof window !== "undefined" && (window.innerWidth < 768 || coarse));
+    };
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  const opts = isMobile
+    ? { typingMs: 160, deletingMs: 110, holdMs: 2200 } // slower + longer pause on mobile
+    : { typingMs: 75, deletingMs: 35, holdMs: 1100 };
+
   const { text } = useTypewriter([
     "developer",
     "marketing",
@@ -90,10 +106,10 @@ const TypingHeadline: FC = () => {
     "finance",
     "product management"
 
-  ], { typingMs: 75, deletingMs: 35, holdMs: 1100 });
+  ], opts);
 
   return (
-    <h1 className="text-5xl md:text-6xl font-bold text-center mb-4 text-gray-900 drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)] leading-tight">
+  <h1 className="text-5xl md:text-6xl font-bold text-center mb-4 text-gray-900 drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)] leading-tight">
       <div>One smart searchable brain for all</div>
       <div>
         <span className="text-black"> your </span>
@@ -108,7 +124,7 @@ const TypingHeadline: FC = () => {
 const HeroBackgroundFlow = () => {
   const nodeTypes = useMemo(() => ({ custom: EmptyNode }), []);
 
-  const generateRandomNodes = (count = 200) =>
+  const generateRandomNodes = (count = 150) =>
     Array.from({ length: count }, (_, i) => {
       const randomColor = `hsl(${Math.floor(Math.random() * 360)}, 70%, 80%)`;
       const randomSize = Math.floor(Math.random() * 80) + 12;
@@ -198,12 +214,6 @@ const LandingPage: FC = () => {
       100% { background-position: 0% 50%; }
     }
     .animate-gradient-mesh { background-size: 400% 400%; background-position: 0% 50%; animation: gradient-mesh 6s ease infinite; }
-/* add in <style> */
-.noise::after{
-  content:""; position:absolute; inset:0; pointer-events:none; opacity:.05;
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width=\"100\" height=\"100\" viewBox=\"0 0 100 100\"><filter id=\"n\"><feTurbulence baseFrequency=\"0.8\" numOctaves=\"2\"/></filter><rect width=\"100%\" height=\"100%\" filter=\"url(%23n)\" opacity=\"0.4\"/></svg>');
-  mix-blend-mode: multiply;
-}
 
     /* blinking cursor */
     @keyframes type-blink { 0%, 49%, 100% { opacity: 1; } 50% { opacity: 0; } }
@@ -211,8 +221,6 @@ const LandingPage: FC = () => {
   `}</style>
         <title>Mesh</title>
         <meta name="description" content="Mesh — AI-powered team knowledge system" />
-        <link rel="icon" href="/logo.png" type="image/png" />
-        <link rel="icon" href="/logo.png" type="image/png" />
       </Head>
 
       {/* Header Nav */}
@@ -227,7 +235,7 @@ const LandingPage: FC = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="w-full min-h-[calc(100vh-64px)] bg-gray-50 relative px-4 py-16 flex flex-col items-center justify-center overflow-hidden animate-fade-in relative noise">
+      <section className="w-full min-h-[calc(100vh-64px)] bg-gray-50 relative px-4 py-16 flex flex-col items-center justify-center overflow-hidden animate-fade-in">
         <HeroBackgroundFlow />
         <div className="relative z-10 flex flex-col items-center">
           <TypingHeadline />
