@@ -13,6 +13,7 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   Node,
+  Handle,
 } from "reactflow";
 import "reactflow/dist/style.css";
 
@@ -98,6 +99,7 @@ const SimpleNode = ({ data }: {
     selected?: boolean;
     connected?: boolean;
     searchMatch?: boolean;
+    searchMatchIndex?: number;
   } 
 }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -142,9 +144,13 @@ const SimpleNode = ({ data }: {
     }
   };
   
+  const animationDelay = data.searchMatch && data.searchMatchIndex !== undefined 
+    ? `${data.searchMatchIndex * 0.1}s` 
+    : "0s";
+  
   return (
     <div
-      className="transition-all duration-300 cursor-pointer flex items-center justify-center"
+      className="transition-all duration-300 cursor-pointer flex items-center justify-center relative"
       style={{ 
         width: size,
         height: size,
@@ -158,13 +164,25 @@ const SimpleNode = ({ data }: {
           : data.searchMatch
           ? `0 0 0 2px ${nodeColors.border}30, 0 4px 8px ${nodeColors.border}20`
           : `0 2px 4px ${nodeColors.border}20`,
-        transform: data.selected ? "scale(1.15)" : data.connected ? "scale(1.08)" : isHovered ? "scale(1.1)" : "scale(1)",
-        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-        zIndex: data.selected ? 50 : data.connected ? 40 : 30,
+        transform: data.selected 
+          ? "scale(1.15)" 
+          : data.connected 
+          ? "scale(1.08)" 
+          : data.searchMatch
+          ? "scale(1.05)"
+          : isHovered 
+          ? "scale(1.1)" 
+          : "scale(1)",
+        transition: `all 0.3s cubic-bezier(0.4, 0, 0.2, 1) ${animationDelay}`,
+        zIndex: data.selected ? 50 : data.connected ? 40 : data.searchMatch ? 35 : 30,
+        animation: data.searchMatch ? `search-reveal 0.6s ease-out ${animationDelay} both` : undefined,
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {/* Invisible handles for ReactFlow edge connections - one source and one target */}
+      <Handle type="source" position={Position.Right} id="source" style={{ opacity: 0, width: 0, height: 0, pointerEvents: "none" }} />
+      <Handle type="target" position={Position.Left} id="target" style={{ opacity: 0, width: 0, height: 0, pointerEvents: "none" }} />
       <div style={{ 
         display: "flex", 
         alignItems: "center", 
@@ -406,7 +424,21 @@ const performFakeAISearch = (query: string, nodes: any[]) => {
   const lowerQuery = query.toLowerCase();
   const matchingNodes: Array<{ id: string; score: number }> = [];
   
-  // Keywords that match different aspects
+  // Question patterns that indicate type filtering
+  const questionPatterns = ["where are", "show me", "find", "what are", "list", "give me", "display"];
+  const isQuestion = questionPatterns.some(pattern => lowerQuery.startsWith(pattern) || lowerQuery.includes(pattern + " "));
+  
+  // Type keywords mapping
+  const typeKeywords: Record<string, string[]> = {
+    document: ["document", "documents", "file", "files", "paper", "papers", "report", "reports", "spec", "specification"],
+    meeting: ["meeting", "meetings", "sync", "standup", "discussion", "discussions", "call", "calls", "conference"],
+    note: ["note", "notes", "memo", "memos", "reminder", "reminders"],
+    whiteboard: ["whiteboard", "whiteboards", "board", "boards", "diagram", "diagrams", "sketch", "sketches", "visual"],
+    code: ["code", "codes", "programming", "api", "implementation", "implementations", "script", "scripts", "function"],
+    audio: ["audio", "recording", "recordings", "sound", "sounds", "voice", "podcast", "podcasts"],
+  };
+  
+  // Keywords that match different aspects (for non-question queries)
   const keywords = {
     document: ["document", "file", "paper", "report", "spec", "specification"],
     meeting: ["meeting", "sync", "standup", "discussion", "call", "conference"],
@@ -420,11 +452,30 @@ const performFakeAISearch = (query: string, nodes: any[]) => {
     architecture: ["architecture", "system", "design", "structure"],
   };
   
+  // If it's a question, extract type and filter strictly
+  let targetType: string | null = null;
+  if (isQuestion) {
+    for (const [type, typeWords] of Object.entries(typeKeywords)) {
+      if (typeWords.some(word => lowerQuery.includes(word))) {
+        targetType = type;
+        break;
+      }
+    }
+  }
+  
   nodes.forEach(node => {
     const fakeData = node.data.fakeData;
     const nodeText = `${fakeData.title} ${fakeData.description} ${fakeData.tags.join(" ")} ${fakeData.aiInsight}`.toLowerCase();
     
-    // Check if query matches any keywords or content
+    // If question with type detected, only include matching type
+    if (isQuestion && targetType) {
+      if (node.data.type === targetType) {
+        matchingNodes.push({ id: node.id, score: 10 });
+      }
+      return; // Skip keyword matching for question queries
+    }
+    
+    // Regular keyword matching (non-question queries)
     let score = 0;
     
     // Type matching
@@ -439,14 +490,20 @@ const performFakeAISearch = (query: string, nodes: any[]) => {
       }
     });
     
-    // Direct text matching
-    const queryWords = lowerQuery.split(" ");
+    // Direct text matching - support partial matches for real-time typing
+    const queryWords = lowerQuery.split(" ").filter(w => w.length > 0);
     queryWords.forEach(word => {
-      if (word.length > 2) {
-        if (nodeText.includes(word)) score += 2;
-        if (fakeData.title.toLowerCase().includes(word)) score += 3;
-        if (fakeData.tags.some((tag: string) => tag.includes(word))) score += 2;
-      }
+      // Match if any word in node text starts with or contains the query
+      if (nodeText.includes(word)) score += 2;
+      if (fakeData.title.toLowerCase().includes(word)) score += 3;
+      if (fakeData.tags.some((tag: string) => tag.includes(word))) score += 2;
+      
+      // Also check if keywords start with the query (for partial matching like "co" -> "code")
+      Object.values(keywords).flat().forEach(keyword => {
+        if (keyword.startsWith(word) && (nodeText.includes(keyword) || fakeData.title.toLowerCase().includes(keyword))) {
+          score += 2;
+        }
+      });
     });
     
     if (score > 0) {
@@ -454,23 +511,29 @@ const performFakeAISearch = (query: string, nodes: any[]) => {
     }
   });
   
-  // Sort by score and take top matches
+  // Sort by score and take top matches (or all if question with type)
   matchingNodes.sort((a, b) => b.score - a.score);
-  const topMatches = matchingNodes.slice(0, 8).map(m => m.id);
+  const topMatches = isQuestion && targetType 
+    ? matchingNodes.map(m => m.id) // Show all matching type for questions
+    : matchingNodes.slice(0, 8).map(m => m.id);
   
   // Generate fake AI response
-  const aiResponses = [
-    `Found ${topMatches.length} relevant ${topMatches.length === 1 ? 'item' : 'items'} related to "${query}". These ${topMatches.length === 1 ? 'appears' : 'appear'} to be connected through shared topics and context.`,
-    `Based on your query "${query}", I've identified ${topMatches.length} ${topMatches.length === 1 ? 'node' : 'nodes'} that match your search criteria. The content ${topMatches.length === 1 ? 'relates' : 'relate'} to this topic.`,
-    `Search results for "${query}": ${topMatches.length} ${topMatches.length === 1 ? 'document' : 'documents'} found. These are connected through semantic relationships in your knowledge graph.`,
-    `I found ${topMatches.length} relevant ${topMatches.length === 1 ? 'item' : 'items'} matching "${query}". The connections between these nodes suggest they are part of related work streams.`,
-  ];
-  
-  const randomResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+  let aiResponse = "";
+  if (isQuestion && targetType) {
+    aiResponse = `Found ${topMatches.length} ${targetType} ${topMatches.length === 1 ? 'file' : 'files'} matching your query.`;
+  } else {
+    const aiResponses = [
+      `Found ${topMatches.length} relevant ${topMatches.length === 1 ? 'item' : 'items'} related to "${query}". These ${topMatches.length === 1 ? 'appears' : 'appear'} to be connected through shared topics and context.`,
+      `Based on your query "${query}", I've identified ${topMatches.length} ${topMatches.length === 1 ? 'node' : 'nodes'} that match your search criteria. The content ${topMatches.length === 1 ? 'relates' : 'relate'} to this topic.`,
+      `Search results for "${query}": ${topMatches.length} ${topMatches.length === 1 ? 'document' : 'documents'} found. These are connected through semantic relationships in your knowledge graph.`,
+      `I found ${topMatches.length} relevant ${topMatches.length === 1 ? 'item' : 'items'} matching "${query}". The connections between these nodes suggest they are part of related work streams.`,
+    ];
+    aiResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+  }
   
   return {
     matchingNodeIds: topMatches,
-    aiResponse: randomResponse,
+    aiResponse: aiResponse,
   };
 };
 
@@ -507,8 +570,31 @@ const DemoSection: FC = () => {
     const nodeIds = baseNodes.map(n => n.id);
     const edgeSet = new Set<string>();
     
-    // Create 25-30 random connections
-    for (let i = 0; i < 28; i++) {
+    // Create connections - ensure each node has at least 1-2 connections
+    // First, connect each node to at least one other node
+    nodeIds.forEach((nodeId, index) => {
+      // Connect to next node (circular)
+      const nextIndex = (index + 1) % nodeIds.length;
+      const nextNodeId = nodeIds[nextIndex];
+      const edgeKey = `${nodeId}-${nextNodeId}`;
+      
+      if (!edgeSet.has(edgeKey)) {
+        edgeSet.add(edgeKey);
+        edges.push({
+          id: `e${nodeId}-${nextNodeId}`,
+          source: nodeId,
+          target: nextNodeId,
+          type: "straight",
+          animated: false,
+          style: { stroke: "#64748b", strokeWidth: 1.5, opacity: 0.3 },
+        });
+      }
+    });
+    
+    // Then add random additional connections
+    let attempts = 0;
+    while (edges.length < 30 && attempts < 100) {
+      attempts++;
       const source = nodeIds[Math.floor(Math.random() * nodeIds.length)];
       let target = nodeIds[Math.floor(Math.random() * nodeIds.length)];
       
@@ -527,12 +613,14 @@ const DemoSection: FC = () => {
           id: `e${source}-${target}`,
           source,
           target,
+          type: "straight",
           animated: false,
-          style: { stroke: "#64748b", strokeWidth: 1, opacity: 0.3 },
+          style: { stroke: "#64748b", strokeWidth: 1.5, opacity: 0.3 },
         });
       }
     }
     
+    console.log('Generated edges:', edges.length);
     return edges;
   }, [baseNodes]);
 
@@ -579,10 +667,11 @@ const DemoSection: FC = () => {
   const demoNodes = useMemo(() => {
     const connectedNodeIds = selectedNodeId ? findConnectedNodes(selectedNodeId) : new Set<string>();
     
-    return baseNodes.map((node) => {
+    return baseNodes.map((node, index) => {
       const isSelected = selectedNodeId === node.id;
       const isConnected = !isSelected && connectedNodeIds.has(node.id);
       const isSearchMatch = searchResults.matchingNodeIds.includes(node.id);
+      const searchMatchIndex = isSearchMatch ? searchResults.matchingNodeIds.indexOf(node.id) : -1;
       
       return {
         ...node,
@@ -592,30 +681,57 @@ const DemoSection: FC = () => {
           selected: isSelected,
           connected: isConnected,
           searchMatch: isSearchMatch,
+          searchMatchIndex: searchMatchIndex,
+        },
+        style: {
+          opacity: searchQuery && !isSearchMatch ? 0.2 : 1,
+          transition: "opacity 0.4s ease, transform 0.4s ease",
         },
       };
     });
-  }, [baseNodes, selectedNodeId, findConnectedNodes, searchResults]);
+  }, [baseNodes, selectedNodeId, findConnectedNodes, searchResults, searchQuery]);
 
   // Enhanced edge highlighting with subtle glow for connected edges
   const enhancedEdges = useMemo(() => {
     const connectedNodeIds = selectedNodeId ? findConnectedNodes(selectedNodeId) : new Set<string>();
+    const searchMatchIds = new Set(searchResults.matchingNodeIds);
     
     return demoEdges.map(edge => {
       const isDirectlyConnected = (edge.source === selectedNodeId || edge.target === selectedNodeId) && selectedNodeId !== null;
       const isInConnectedGroup = selectedNodeId && connectedNodeIds.has(edge.source) && connectedNodeIds.has(edge.target);
+      
+      // Show edges connecting search-matched nodes
+      const connectsSearchMatches = searchQuery && searchMatchIds.has(edge.source) && searchMatchIds.has(edge.target);
       
       if (isDirectlyConnected || isInConnectedGroup) {
       return {
           id: edge.id,
           source: edge.source,
           target: edge.target,
+          type: "straight",
           animated: true,
         style: {
             stroke: "#06b6d4",
             strokeWidth: isDirectlyConnected ? 3 : 2.5,
-            opacity: 0.9,
+            opacity: 0.6,
             filter: `drop-shadow(0 0 4px rgba(6, 182, 212, 0.6)) drop-shadow(0 0 8px rgba(6, 182, 212, 0.3))`,
+          },
+        };
+      }
+      
+      if (connectsSearchMatches) {
+        return {
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          type: "straight",
+          animated: true,
+          style: {
+            stroke: "#8b5cf6",
+            strokeWidth: 2,
+            opacity: 0.5,
+            filter: `drop-shadow(0 0 3px rgba(139, 92, 246, 0.5))`,
+            transition: "opacity 0.4s ease, stroke-width 0.4s ease",
           },
         };
       }
@@ -624,15 +740,17 @@ const DemoSection: FC = () => {
         id: edge.id,
         source: edge.source,
         target: edge.target,
+        type: "straight",
         animated: false,
         style: {
           stroke: "#64748b",
-          strokeWidth: 1,
-          opacity: selectedNodeId ? 0.15 : 0.3,
+          strokeWidth: 1.5,
+          opacity: selectedNodeId || searchQuery ? 0.2 : 0.3,
+          transition: "opacity 0.4s ease",
         },
       };
     });
-  }, [demoEdges, selectedNodeId, findConnectedNodes]);
+  }, [demoEdges, selectedNodeId, findConnectedNodes, searchResults, searchQuery]);
 
   const handleNodeClick = (event: React.MouseEvent, node: Node) => {
     if (selectedNodeId === node.id) {
@@ -668,6 +786,9 @@ const DemoSection: FC = () => {
 
   useEffect(() => {
     setFlowEdges(enhancedEdges);
+    // Debug: Log edges to verify they're being created
+    console.log('Edges count:', enhancedEdges.length);
+    console.log('Sample edges:', enhancedEdges.slice(0, 3));
   }, [enhancedEdges, setFlowEdges]);
 
   return (
@@ -698,14 +819,22 @@ const DemoSection: FC = () => {
             </button>
           </form>
           
+          {/* Demo Disclaimer */}
+          <p className="text-xs text-gray-500 text-center mt-2">
+            Demo: Search uses simulated AI responses. Real API integration available in production.
+          </p>
+          
           {/* AI Response */}
           {searchResults.aiResponse && (
             <div className="mt-3 bg-purple-50 border border-purple-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <Brain size={20} className="mt-0.5 flex-shrink-0 text-purple-600" />
-                <div>
-                  <p className="text-sm font-medium text-purple-900 mb-1">AI Assistant</p>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-purple-900 mb-1">AI Assistant (Demo)</p>
                   <p className="text-sm text-purple-800">{searchResults.aiResponse}</p>
+                  <p className="text-xs text-purple-600 mt-2 pt-2 border-t border-purple-200">
+                    Note: This is a demo with simulated responses. Real API integration powered by Inngest available in production.
+                  </p>
           </div>
               </div>
             </div>
@@ -727,10 +856,10 @@ const DemoSection: FC = () => {
               nodeTypes={demoNodeTypes}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
-                onNodeClick={handleNodeClick}
-                onPaneClick={() => setSelectedNodeId(null)}
+              onNodeClick={handleNodeClick}
+              onPaneClick={() => setSelectedNodeId(null)}
               fitView
-                fitViewOptions={{ padding: 0.2, minZoom: 0.4, maxZoom: 1 }}
+              fitViewOptions={{ padding: 0.2, minZoom: 0.4, maxZoom: 1 }}
               zoomOnScroll={false}
               zoomOnPinch={false}
               panOnScroll={false}
@@ -738,6 +867,7 @@ const DemoSection: FC = () => {
               nodesDraggable={false}
               preventScrolling={false}
               className="bg-transparent"
+              defaultEdgeOptions={{ type: "straight" }}
             >
               <Controls showZoom={false} showFitView={false} showInteractive={false} />
             </ReactFlow>
@@ -918,6 +1048,16 @@ const LandingPage: FC = () => {
     .animate-slide-in {
       animation: slide-in 0.3s ease-out;
     }
+    @keyframes search-reveal {
+      from {
+        opacity: 0;
+        transform: scale(0.5) translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
     @media (max-width: 1024px) {
       .college-logo-container {
         width: calc(100% / 4);
@@ -977,7 +1117,7 @@ const LandingPage: FC = () => {
       <section className="w-full bg-white px-4 py-20">
         <div className="max-w-6xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Trusted by teams at leading institutions
+            6 universities. 30+ teams. 600+ users.
           </h2>
           <p className="text-lg md:text-xl text-gray-700 mb-12">
             Adopted by research teams, academics, and hackathons at various colleges
@@ -1023,9 +1163,15 @@ const LandingPage: FC = () => {
         .react-flow__viewport {
           pointer-events: none;
         }
-        .react-flow__pane,
+        .react-flow__pane {
+          pointer-events: none;
+        }
         .react-flow__renderer {
           pointer-events: none;
+        }
+        .react-flow__edges {
+          pointer-events: none !important;
+          z-index: 5 !important;
         }
         .react-flow__node {
           pointer-events: auto;
@@ -1040,6 +1186,20 @@ const LandingPage: FC = () => {
         .react-flow-container:active .react-flow__pane,
         .react-flow-container:active .react-flow__renderer {
           pointer-events: auto;
+        }
+        .react-flow__edge {
+          z-index: 10 !important;
+          pointer-events: none !important;
+        }
+        .react-flow__edge-path {
+          stroke-width: 1.5 !important;
+          pointer-events: none !important;
+        }
+        .react-flow__edge.selected .react-flow__edge-path {
+          stroke-width: 2 !important;
+        }
+        .react-flow__connectionline {
+          z-index: 1000;
         }
       `}</style>
     </div>
