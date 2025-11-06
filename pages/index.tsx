@@ -4,7 +4,7 @@ import React, { FC, useState, useEffect, useMemo } from "react";
 
 import Head from "next/head";
 import { useRouter } from "next/navigation";
-import { Shield, UploadCloud, Bot, Brain, MessageCircle, Search } from "lucide-react";
+import { Shield, UploadCloud, Bot, Brain, MessageCircle, Search, FileText, Music, Code, Video, File, StickyNote } from "lucide-react";
 import ReactFlow, {
   Background,
   Controls,
@@ -12,6 +12,7 @@ import ReactFlow, {
   MarkerType,
   useNodesState,
   useEdgesState,
+  Node,
 } from "reactflow";
 import "reactflow/dist/style.css";
 
@@ -38,25 +39,140 @@ const EmptyNode = () => (
   />
 );
 
-// Demo Knowledge Graph Node Component
-const KnowledgeNode = ({ data }: { data: { label: string; type: string; highlight?: boolean } }) => {
-  const colors: Record<string, string> = {
-    document: "bg-blue-500",
-    meeting: "bg-purple-500",
-    note: "bg-green-500",
-    whiteboard: "bg-orange-500",
-    code: "bg-pink-500",
+// SVG Icon Components
+const DocumentIcon = ({ size = 14, color = "currentColor" }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    <path d="M14 2V8H20" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    <path d="M16 13H8" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M16 17H8" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M10 9H9H8" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const MeetingIcon = ({ size = 14, color = "currentColor" }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M23 19C23 19.5304 22.7893 20.0391 22.4142 20.4142C22.0391 20.7893 21.5304 21 21 21H3C2.46957 21 1.96086 20.7893 1.58579 20.4142C1.21071 20.0391 1 19.5304 1 19V5C1 4.46957 1.21071 3.96086 1.58579 3.58579C1.96086 3.21071 2.46957 3 3 3H9L11 5H21C21.5304 5 22.0391 5.21071 22.4142 5.58579C22.7893 5.96086 23 6.46957 23 7V19Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    <circle cx="8" cy="12" r="1" fill={color}/>
+    <circle cx="12" cy="12" r="1" fill={color}/>
+    <circle cx="16" cy="12" r="1" fill={color}/>
+  </svg>
+);
+
+const NoteIcon = ({ size = 14, color = "currentColor" }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    <path d="M14 2V8H20" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    <path d="M16 13H8" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M16 17H8" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const WhiteboardIcon = ({ size = 14, color = "currentColor" }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3" y="3" width="18" height="18" rx="2" stroke={color} strokeWidth="2" fill="none"/>
+    <path d="M7 7H17M7 11H17M7 15H13" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+    <path d="M9 17L11 15L9 13" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const CodeIcon = ({ size = 14, color = "currentColor" }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <polyline points="16 18 22 12 16 6" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    <polyline points="8 6 2 12 8 18" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+  </svg>
+);
+
+const AudioIcon = ({ size = 14, color = "currentColor" }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    <path d="M19.07 4.93C19.6599 5.51992 20.0099 6.26992 20.0099 7.05C20.0099 7.83008 19.6599 8.58008 19.07 9.17" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    <path d="M20.24 2.76C21.4201 3.93995 22.0099 5.49995 22.0099 7.05C22.0099 8.60005 21.4201 10.1601 20.24 11.34" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+  </svg>
+);
+
+// Enhanced node component with SVG icons
+const SimpleNode = ({ data }: { 
+  data: { 
+    type: string; 
+    selected?: boolean;
+    connected?: boolean;
+    searchMatch?: boolean;
+  } 
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+  
+  const colors: Record<string, { bg: string; icon: string; border: string }> = {
+    document: { bg: "#dbeafe", icon: "#3b82f6", border: "#3b82f6" },
+    meeting: { bg: "#ede9fe", icon: "#8b5cf6", border: "#8b5cf6" },
+    note: { bg: "#d1fae5", icon: "#10b981", border: "#10b981" },
+    whiteboard: { bg: "#fed7aa", icon: "#f97316", border: "#f97316" },
+    code: { bg: "#fce7f3", icon: "#ec4899", border: "#ec4899" },
+    audio: { bg: "#e0e7ff", icon: "#6366f1", border: "#6366f1" },
+  };
+  
+  const nodeColors = colors[data.type] || { bg: "#f1f5f9", icon: "#64748b", border: "#64748b" };
+  const size = data.selected ? 48 : data.connected ? 42 : data.searchMatch ? 40 : 36;
+  const iconSize = data.selected ? 20 : data.connected ? 18 : data.searchMatch ? 17 : 16;
+  const borderColor = data.selected 
+    ? nodeColors.border 
+    : data.connected 
+    ? `${nodeColors.border}80` 
+    : data.searchMatch
+    ? `${nodeColors.border}60`
+    : `${nodeColors.border}40`;
+  
+  const getIcon = () => {
+    const iconColor = nodeColors.icon;
+    switch (data.type) {
+      case "document":
+        return <DocumentIcon size={iconSize} color={iconColor} />;
+      case "meeting":
+        return <MeetingIcon size={iconSize} color={iconColor} />;
+      case "note":
+        return <NoteIcon size={iconSize} color={iconColor} />;
+      case "whiteboard":
+        return <WhiteboardIcon size={iconSize} color={iconColor} />;
+      case "code":
+        return <CodeIcon size={iconSize} color={iconColor} />;
+      case "audio":
+        return <AudioIcon size={iconSize} color={iconColor} />;
+      default:
+        return <DocumentIcon size={iconSize} color={iconColor} />;
+    }
   };
   
   return (
     <div
-      className={`${colors[data.type] || "bg-gray-500"} rounded-lg p-3 shadow-lg transition-all duration-300 ${
-        data.highlight ? "scale-125 ring-4 ring-yellow-400 z-10" : ""
-      }`}
-      style={{ minWidth: "100px", maxWidth: "150px" }}
+      className="transition-all duration-300 cursor-pointer flex items-center justify-center"
+      style={{ 
+        width: size,
+        height: size,
+        borderRadius: "12px",
+        backgroundColor: nodeColors.bg,
+        border: `2px solid ${borderColor}`,
+        boxShadow: data.selected 
+          ? `0 0 0 4px ${nodeColors.border}40, 0 8px 24px ${nodeColors.border}40`
+          : data.connected
+          ? `0 0 0 2px ${nodeColors.border}40, 0 4px 12px ${nodeColors.border}30`
+          : data.searchMatch
+          ? `0 0 0 2px ${nodeColors.border}30, 0 4px 8px ${nodeColors.border}20`
+          : `0 2px 4px ${nodeColors.border}20`,
+        transform: data.selected ? "scale(1.15)" : data.connected ? "scale(1.08)" : isHovered ? "scale(1.1)" : "scale(1)",
+        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        zIndex: data.selected ? 50 : data.connected ? 40 : 30,
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="text-white text-xs font-semibold">{data.label}</div>
-      <div className="text-white/70 text-[10px] mt-1">{data.type}</div>
+      <div style={{ 
+        display: "flex", 
+        alignItems: "center", 
+        justifyContent: "center",
+        opacity: data.selected ? 1 : data.connected ? 0.9 : 0.8,
+      }}>
+        {getIcon()}
+      </div>
     </div>
   );
 };
@@ -194,158 +310,509 @@ const HeroBackgroundFlow = () => {
   );
 };
 
-// Demo Section Component
-const DemoSection: FC = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const demoNodeTypes = useMemo(() => ({ knowledge: KnowledgeNode }), []);
+// Fake data generators
+const generateFakeData = (nodeId: string, type: string) => {
+  const descriptions: Record<string, string[]> = {
+    document: [
+      "Comprehensive analysis document covering key project metrics and performance indicators.",
+      "Technical specification outlining system architecture and integration patterns.",
+      "Research findings document from recent investigation into market trends.",
+      "Strategic planning document detailing Q4 objectives and resource allocation.",
+      "Project proposal document outlining scope, timeline, and deliverables.",
+    ],
+    meeting: [
+      "Team standup meeting discussing sprint progress and blockers.",
+      "Quarterly planning session reviewing goals and setting priorities.",
+      "Client presentation meeting covering project status and updates.",
+      "Technical architecture review meeting with engineering leads.",
+      "Retrospective meeting analyzing team performance and improvements.",
+    ],
+    note: [
+      "Quick capture of key insights from brainstorming session.",
+      "Meeting notes highlighting action items and decisions.",
+      "Research notes compiling findings from multiple sources.",
+      "Ideation notes documenting creative concepts and explorations.",
+      "Strategic notes outlining high-level planning considerations.",
+    ],
+    whiteboard: [
+      "System architecture diagram showing component relationships.",
+      "User flow visualization mapping customer journey.",
+      "Brainstorming session output with ideas and connections.",
+      "Technical design sketch illustrating proposed solution.",
+      "Organizational structure diagram showing team hierarchy.",
+    ],
+    code: [
+      "API endpoint implementation with authentication and error handling.",
+      "Data processing pipeline for transforming raw inputs.",
+      "Component library code with reusable UI elements.",
+      "Algorithm implementation with optimization techniques.",
+      "Database schema migration script with schema changes.",
+    ],
+    audio: [
+      "Team meeting recording covering project updates.",
+      "Client interview recording with key insights and feedback.",
+      "Training session recording demonstrating new features.",
+      "Podcast episode discussing industry trends and best practices.",
+      "Voice memo capturing quick thoughts and ideas.",
+    ],
+  };
+
+  const aiInsights: string[] = [
+    "This content shows strong connections to 3 other documents discussing similar topics.",
+    "AI analysis suggests this is part of a larger knowledge cluster related to project planning.",
+    "Pattern detection indicates this content is frequently referenced by team members.",
+    "Semantic analysis reveals high relevance to recent team discussions and decisions.",
+    "This node appears central to understanding the project's technical architecture.",
+    "Content similarity analysis shows strong alignment with strategic planning documents.",
+    "AI identifies this as a key knowledge hub connecting multiple subject areas.",
+    "Temporal analysis suggests this content is part of an active discussion thread.",
+    "Cross-reference analysis indicates this is frequently cited in related documents.",
+    "AI insights reveal this content bridges multiple knowledge domains.",
+  ];
+
+  const tagPools: Record<string, string[]> = {
+    document: ["planning", "strategy", "research", "analysis", "reference", "technical", "specification"],
+    meeting: ["standup", "planning", "review", "sync", "discussion", "collaboration", "alignment"],
+    note: ["quick-capture", "ideas", "insights", "notes", "brainstorming", "research", "findings"],
+    whiteboard: ["architecture", "design", "flow", "diagram", "visualization", "planning", "sketch"],
+    code: ["api", "backend", "frontend", "implementation", "library", "algorithm", "optimization"],
+    audio: ["recording", "meeting", "interview", "training", "podcast", "memo", "discussion"],
+  };
+
+  const authors = ["Sarah Chen", "Michael Rodriguez", "Emma Thompson", "David Kim", "Lisa Anderson", "James Wilson"];
+  const dates = ["2 days ago", "1 week ago", "3 days ago", "5 days ago", "1 day ago", "4 days ago"];
+
+  const descPool = descriptions[type] || descriptions.document;
+  const tagsPool = tagPools[type] || tagPools.document;
+
+  // Use nodeId to seed randomness for consistent fake data
+  const seed = parseInt(nodeId) || 0;
   
+  return {
+    title: `${type.charAt(0).toUpperCase() + type.slice(1)} ${nodeId}`,
+    description: descPool[seed % descPool.length],
+    aiInsight: aiInsights[seed % aiInsights.length],
+    tags: tagsPool.sort(() => Math.random() - 0.5).slice(0, 3 + (seed % 3)),
+    author: authors[seed % authors.length],
+    date: dates[seed % dates.length],
+    connections: 2 + (seed % 4),
+  };
+};
+
+// Fake AI natural language search
+const performFakeAISearch = (query: string, nodes: any[]) => {
+  if (!query.trim()) return { matchingNodeIds: [], aiResponse: "" };
+  
+  const lowerQuery = query.toLowerCase();
+  const matchingNodes: Array<{ id: string; score: number }> = [];
+  
+  // Keywords that match different aspects
+  const keywords = {
+    document: ["document", "file", "paper", "report", "spec", "specification"],
+    meeting: ["meeting", "sync", "standup", "discussion", "call", "conference"],
+    note: ["note", "notes", "jot", "memo", "reminder", "write"],
+    whiteboard: ["whiteboard", "board", "diagram", "sketch", "draw", "visual"],
+    code: ["code", "programming", "api", "implementation", "script", "function"],
+    audio: ["audio", "recording", "sound", "voice", "podcast", "listen"],
+    planning: ["plan", "planning", "roadmap", "strategy", "objective"],
+    research: ["research", "study", "analysis", "investigation", "findings"],
+    team: ["team", "collaboration", "group", "people", "member"],
+    architecture: ["architecture", "system", "design", "structure"],
+  };
+  
+  nodes.forEach(node => {
+    const fakeData = node.data.fakeData;
+    const nodeText = `${fakeData.title} ${fakeData.description} ${fakeData.tags.join(" ")} ${fakeData.aiInsight}`.toLowerCase();
+    
+    // Check if query matches any keywords or content
+    let score = 0;
+    
+    // Type matching
+    Object.entries(keywords).forEach(([key, words]) => {
+      if (words.some(word => lowerQuery.includes(word))) {
+        if (key === node.data.type || nodeText.includes(key)) {
+          score += 3;
+        }
+        if (nodeText.includes(key)) {
+          score += 2;
+        }
+      }
+    });
+    
+    // Direct text matching
+    const queryWords = lowerQuery.split(" ");
+    queryWords.forEach(word => {
+      if (word.length > 2) {
+        if (nodeText.includes(word)) score += 2;
+        if (fakeData.title.toLowerCase().includes(word)) score += 3;
+        if (fakeData.tags.some((tag: string) => tag.includes(word))) score += 2;
+      }
+    });
+    
+    if (score > 0) {
+      matchingNodes.push({ id: node.id, score });
+    }
+  });
+  
+  // Sort by score and take top matches
+  matchingNodes.sort((a, b) => b.score - a.score);
+  const topMatches = matchingNodes.slice(0, 8).map(m => m.id);
+  
+  // Generate fake AI response
+  const aiResponses = [
+    `Found ${topMatches.length} relevant ${topMatches.length === 1 ? 'item' : 'items'} related to "${query}". These ${topMatches.length === 1 ? 'appears' : 'appear'} to be connected through shared topics and context.`,
+    `Based on your query "${query}", I've identified ${topMatches.length} ${topMatches.length === 1 ? 'node' : 'nodes'} that match your search criteria. The content ${topMatches.length === 1 ? 'relates' : 'relate'} to this topic.`,
+    `Search results for "${query}": ${topMatches.length} ${topMatches.length === 1 ? 'document' : 'documents'} found. These are connected through semantic relationships in your knowledge graph.`,
+    `I found ${topMatches.length} relevant ${topMatches.length === 1 ? 'item' : 'items'} matching "${query}". The connections between these nodes suggest they are part of related work streams.`,
+  ];
+  
+  const randomResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+  
+  return {
+    matchingNodeIds: topMatches,
+    aiResponse: randomResponse,
+  };
+};
+
+// Minimal Intelligent Demo Section
+const DemoSection: FC = () => {
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<{ matchingNodeIds: string[]; aiResponse: string }>({ matchingNodeIds: [], aiResponse: "" });
+  const demoNodeTypes = useMemo(() => ({ simple: SimpleNode }), []);
+  
+  // Generate 20 nodes with random positions
+  const baseNodes = useMemo(() => {
+    const types = ["document", "meeting", "note", "whiteboard", "code", "audio"];
+    return Array.from({ length: 20 }, (_, i) => {
+      const id = String(i + 1);
+      const type = types[i % types.length];
+      return {
+        id,
+        data: {
+          type,
+          fakeData: generateFakeData(id, type),
+        },
+        position: { 
+          x: 120 + (i % 6) * 140 + Math.random() * 30,
+          y: 100 + Math.floor(i / 6) * 140 + Math.random() * 30,
+        },
+      };
+    });
+  }, []);
+
+  // Generate random edges connecting nodes
+  const demoEdges = useMemo(() => {
+    const edges: any[] = [];
+    const nodeIds = baseNodes.map(n => n.id);
+    const edgeSet = new Set<string>();
+    
+    // Create 25-30 random connections
+    for (let i = 0; i < 28; i++) {
+      const source = nodeIds[Math.floor(Math.random() * nodeIds.length)];
+      let target = nodeIds[Math.floor(Math.random() * nodeIds.length)];
+      
+      // Ensure source != target
+      while (target === source) {
+        target = nodeIds[Math.floor(Math.random() * nodeIds.length)];
+      }
+      
+      const edgeKey = `${source}-${target}`;
+      const reverseKey = `${target}-${source}`;
+      
+      // Avoid duplicate edges
+      if (!edgeSet.has(edgeKey) && !edgeSet.has(reverseKey)) {
+        edgeSet.add(edgeKey);
+        edges.push({
+          id: `e${source}-${target}`,
+          source,
+          target,
+          animated: false,
+          style: { stroke: "#64748b", strokeWidth: 1, opacity: 0.3 },
+        });
+      }
+    }
+    
+    return edges;
+  }, [baseNodes]);
+
+  // Function to find all connected nodes (recursive/group detection)
+  const findConnectedNodes = useMemo(() => {
+    const edgeMap = new Map<string, string[]>();
+    demoEdges.forEach(edge => {
+      if (!edgeMap.has(edge.source)) edgeMap.set(edge.source, []);
+      if (!edgeMap.has(edge.target)) edgeMap.set(edge.target, []);
+      edgeMap.get(edge.source)!.push(edge.target);
+      edgeMap.get(edge.target)!.push(edge.source);
+    });
+    
+    return (nodeId: string): Set<string> => {
+      const connected = new Set<string>([nodeId]);
+      const queue = [nodeId];
+      
+      while (queue.length > 0) {
+        const current = queue.shift()!;
+        const neighbors = edgeMap.get(current) || [];
+        for (const neighbor of neighbors) {
+          if (!connected.has(neighbor)) {
+            connected.add(neighbor);
+            queue.push(neighbor);
+          }
+        }
+      }
+      
+      return connected;
+    };
+  }, [demoEdges]);
+
+  // Update search results when query changes
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const results = performFakeAISearch(searchQuery, baseNodes);
+      setSearchResults(results);
+    } else {
+      setSearchResults({ matchingNodeIds: [], aiResponse: "" });
+    }
+  }, [searchQuery, baseNodes]);
+
+  // Transform nodes with selection state and search highlighting
   const demoNodes = useMemo(() => {
-    const nodes = [
-      { id: "1", data: { label: "Research Paper", type: "document" }, position: { x: 50, y: 50 } },
-      { id: "2", data: { label: "Team Meeting", type: "meeting" }, position: { x: 200, y: 50 } },
-      { id: "3", data: { label: "Project Notes", type: "note" }, position: { x: 350, y: 50 } },
-      { id: "4", data: { label: "Design Board", type: "whiteboard" }, position: { x: 50, y: 150 } },
-      { id: "5", data: { label: "Code Review", type: "code" }, position: { x: 200, y: 150 } },
-      { id: "6", data: { label: "API Docs", type: "document" }, position: { x: 350, y: 150 } },
-    ];
+    const connectedNodeIds = selectedNodeId ? findConnectedNodes(selectedNodeId) : new Set<string>();
     
-    return nodes.map((node) => ({
-      ...node,
-      type: "knowledge",
-      data: {
-        ...node.data,
-        highlight: searchQuery && node.data.label.toLowerCase().includes(searchQuery.toLowerCase()),
-      },
-    }));
-  }, [searchQuery]);
+    return baseNodes.map((node) => {
+      const isSelected = selectedNodeId === node.id;
+      const isConnected = !isSelected && connectedNodeIds.has(node.id);
+      const isSearchMatch = searchResults.matchingNodeIds.includes(node.id);
+      
+      return {
+        ...node,
+        type: "simple",
+        data: {
+          ...node.data,
+          selected: isSelected,
+          connected: isConnected,
+          searchMatch: isSearchMatch,
+        },
+      };
+    });
+  }, [baseNodes, selectedNodeId, findConnectedNodes, searchResults]);
 
-  const demoEdges = useMemo(() => [
-    { id: "e1-2", source: "1", target: "2", animated: true, style: { stroke: "#3b82f6" } },
-    { id: "e2-3", source: "2", target: "3", animated: true, style: { stroke: "#8b5cf6" } },
-    { id: "e3-4", source: "3", target: "4", animated: true, style: { stroke: "#10b981" } },
-    { id: "e4-5", source: "4", target: "5", animated: true, style: { stroke: "#f97316" } },
-    { id: "e5-6", source: "5", target: "6", animated: true, style: { stroke: "#ec4899" } },
-    { id: "e1-4", source: "1", target: "4", animated: true, style: { stroke: "#6366f1" } },
-  ], []);
-
-  const mobileNodes = useMemo(() => {
-    const nodes = [
-      { id: "m1", data: { label: "Research Paper", type: "document" }, position: { x: 25, y: 30 } },
-      { id: "m2", data: { label: "Team Meeting", type: "meeting" }, position: { x: 25, y: 100 } },
-      { id: "m3", data: { label: "Project Notes", type: "note" }, position: { x: 25, y: 170 } },
-      { id: "m4", data: { label: "Design Board", type: "whiteboard" }, position: { x: 25, y: 240 } },
-    ];
+  // Enhanced edge highlighting with subtle glow for connected edges
+  const enhancedEdges = useMemo(() => {
+    const connectedNodeIds = selectedNodeId ? findConnectedNodes(selectedNodeId) : new Set<string>();
     
-    return nodes.map((node) => ({
-      ...node,
-      type: "knowledge",
-      data: {
-        ...node.data,
-        highlight: searchQuery && node.data.label.toLowerCase().includes(searchQuery.toLowerCase()),
-      },
-    }));
-  }, [searchQuery]);
+    return demoEdges.map(edge => {
+      const isDirectlyConnected = (edge.source === selectedNodeId || edge.target === selectedNodeId) && selectedNodeId !== null;
+      const isInConnectedGroup = selectedNodeId && connectedNodeIds.has(edge.source) && connectedNodeIds.has(edge.target);
+      
+      if (isDirectlyConnected || isInConnectedGroup) {
+      return {
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          animated: true,
+        style: {
+            stroke: "#06b6d4",
+            strokeWidth: isDirectlyConnected ? 3 : 2.5,
+            opacity: 0.9,
+            filter: `drop-shadow(0 0 4px rgba(6, 182, 212, 0.6)) drop-shadow(0 0 8px rgba(6, 182, 212, 0.3))`,
+          },
+        };
+      }
+      
+      return {
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        animated: false,
+        style: {
+          stroke: "#64748b",
+          strokeWidth: 1,
+          opacity: selectedNodeId ? 0.15 : 0.3,
+        },
+      };
+    });
+  }, [demoEdges, selectedNodeId, findConnectedNodes]);
 
-  const mobileEdges = useMemo(() => [
-    { id: "me1-2", source: "m1", target: "m2", animated: true, style: { stroke: "#3b82f6" } },
-    { id: "me2-3", source: "m2", target: "m3", animated: true, style: { stroke: "#8b5cf6" } },
-    { id: "me3-4", source: "m3", target: "m4", animated: true, style: { stroke: "#10b981" } },
-  ], []);
+  const handleNodeClick = (event: React.MouseEvent, node: Node) => {
+    if (selectedNodeId === node.id) {
+      setSelectedNodeId(null); // Deselect if clicking the same node
+    } else {
+      setSelectedNodeId(node.id);
+      setSearchQuery(""); // Clear search when selecting a node
+    }
+  };
 
-  const [mobileFlowNodes, setMobileFlowNodes, onMobileNodesChange] = useNodesState(mobileNodes);
-  const [mobileFlowEdges, setMobileFlowEdges, onMobileEdgesChange] = useEdgesState(mobileEdges);
-  const [desktopFlowNodes, setDesktopFlowNodes, onDesktopNodesChange] = useNodesState(demoNodes);
-  const [desktopFlowEdges, setDesktopFlowEdges, onDesktopEdgesChange] = useEdgesState(demoEdges);
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      const results = performFakeAISearch(searchQuery, baseNodes);
+      setSearchResults(results);
+      // Optionally select the first result
+      if (results.matchingNodeIds.length > 0) {
+        setSelectedNodeId(results.matchingNodeIds[0]);
+      }
+    }
+  };
+
+  const selectedNodeData = selectedNodeId 
+    ? baseNodes.find(n => n.id === selectedNodeId)?.data.fakeData 
+    : null;
+
+  const [flowNodes, setFlowNodes, onNodesChange] = useNodesState(demoNodes);
+  const [flowEdges, setFlowEdges, onEdgesChange] = useEdgesState(enhancedEdges);
 
   useEffect(() => {
-    setMobileFlowNodes(mobileNodes);
-  }, [mobileNodes, setMobileFlowNodes]);
+    setFlowNodes(demoNodes);
+  }, [demoNodes, setFlowNodes]);
 
   useEffect(() => {
-    setDesktopFlowNodes(demoNodes);
-  }, [demoNodes, setDesktopFlowNodes]);
+    setFlowEdges(enhancedEdges);
+  }, [enhancedEdges, setFlowEdges]);
 
   return (
-    <section className="w-full bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 px-4 py-20">
+    <section className="w-full bg-white px-4 py-20">
       <div className="max-w-7xl mx-auto">
         <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-4">
           See It In Action
         </h2>
-        <p className="text-lg text-center text-gray-600 mb-12 max-w-2xl mx-auto">
-          Experience how your knowledge connects across devices
+        <p className="text-lg text-center text-gray-600 mb-8 max-w-2xl mx-auto">
+          Ask questions about your files or click any node to explore connections
         </p>
-        
-        {/* Interactive Search Bar */}
-        <div className="max-w-2xl mx-auto mb-12">
-          <div className="relative">
+
+        {/* Natural Language Search Bar */}
+        <div className="max-w-3xl mx-auto mb-8">
+          <form onSubmit={handleSearch} className="relative">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search your knowledge graph..."
-              className="w-full px-6 py-4 rounded-full border-2 border-gray-200 focus:border-indigo-500 focus:outline-none text-gray-900 shadow-lg transition-all duration-300"
+              placeholder="Search files..."
+              className="w-full px-6 py-4 pr-12 rounded-lg border border-gray-300 focus:border-blue-400 focus:outline-none text-gray-900 shadow-sm transition-all duration-300 bg-white"
             />
-            <Search className="absolute right-6 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <button
+              type="submit"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-2"
+            >
+              <Search size={20} />
+            </button>
+          </form>
+          
+          {/* AI Response */}
+          {searchResults.aiResponse && (
+            <div className="mt-3 bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Brain size={20} className="mt-0.5 flex-shrink-0 text-purple-600" />
+                <div>
+                  <p className="text-sm font-medium text-purple-900 mb-1">AI Assistant</p>
+                  <p className="text-sm text-purple-800">{searchResults.aiResponse}</p>
           </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Side-by-side Demo */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Mobile View */}
-          <div className="bg-white rounded-2xl shadow-2xl p-6 overflow-hidden">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span className="ml-4 text-xs text-gray-500 font-semibold">Mobile View</span>
-            </div>
-            <div className="bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg h-[400px] relative overflow-hidden">
-              <ReactFlow
-                nodes={mobileFlowNodes}
-                edges={mobileFlowEdges}
-                nodeTypes={demoNodeTypes}
-                onNodesChange={onMobileNodesChange}
-                onEdgesChange={onMobileEdgesChange}
-                fitView
-                zoomOnScroll={false}
-                zoomOnPinch={false}
-                panOnScroll={false}
-                panOnDrag={false}
-                nodesDraggable={false}
-                className="bg-transparent"
-              >
-                <Controls showZoom={false} showFitView={false} showInteractive={false} />
-              </ReactFlow>
+        {/* Main Container with Graph and Sidebar */}
+        <div className="flex gap-6">
+          {/* Graph View */}
+          <div className={`bg-white rounded-lg shadow-sm p-6 overflow-hidden border border-gray-200 transition-all duration-300 ${selectedNodeId ? 'flex-1' : 'w-full'}`}>
+            <div className="bg-slate-50 rounded-lg h-[600px] relative overflow-hidden react-flow-container" style={{
+            backgroundImage: `radial-gradient(circle, #cbd5e1 1px, transparent 1px)`,
+            backgroundSize: '20px 20px',
+            backgroundPosition: '0 0',
+          }}>
+            <ReactFlow
+              nodes={flowNodes}
+              edges={flowEdges}
+              nodeTypes={demoNodeTypes}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+                onNodeClick={handleNodeClick}
+                onPaneClick={() => setSelectedNodeId(null)}
+              fitView
+                fitViewOptions={{ padding: 0.2, minZoom: 0.4, maxZoom: 1 }}
+              zoomOnScroll={false}
+              zoomOnPinch={false}
+              panOnScroll={false}
+              panOnDrag={false}
+              nodesDraggable={false}
+              preventScrolling={false}
+              className="bg-transparent"
+            >
+              <Controls showZoom={false} showFitView={false} showInteractive={false} />
+            </ReactFlow>
             </div>
           </div>
+          
+          {/* Sidebar */}
+          {selectedNodeId && selectedNodeData && (
+            <div className="w-80 bg-white rounded-lg shadow-lg border border-gray-200 p-6 animate-slide-in">
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-xl font-bold text-gray-900">{selectedNodeData.title}</h3>
+                <button
+                  onClick={() => setSelectedNodeId(null)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Type</p>
+                  <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+                    {baseNodes.find(n => n.id === selectedNodeId)?.data.type}
+                  </span>
+                </div>
 
-          {/* Desktop View */}
-          <div className="bg-white rounded-2xl shadow-2xl p-6 overflow-hidden">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span className="ml-4 text-xs text-gray-500 font-semibold">Desktop View</span>
-            </div>
-            <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg h-[400px] relative overflow-hidden">
-              <ReactFlow
-                nodes={desktopFlowNodes}
-                edges={desktopFlowEdges}
-                nodeTypes={demoNodeTypes}
-                onNodesChange={onDesktopNodesChange}
-                onEdgesChange={onDesktopEdgesChange}
-                fitView
-                zoomOnScroll={false}
-                zoomOnPinch={false}
-                panOnScroll={false}
-                panOnDrag={false}
-                nodesDraggable={false}
-                className="bg-transparent"
-              >
-                <Controls showZoom={false} showFitView={false} showInteractive={false} />
-              </ReactFlow>
-            </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Description</p>
+                  <p className="text-sm text-gray-700 leading-relaxed">{selectedNodeData.description}</p>
           </div>
+          
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">AI Insight</p>
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                    <p className="text-sm text-purple-900 leading-relaxed flex items-start gap-2">
+                      <Brain size={16} className="mt-0.5 flex-shrink-0 text-purple-600" />
+                      {selectedNodeData.aiInsight}
+                    </p>
+                    <p className="text-xs text-purple-700 mt-2 pt-2 border-t border-purple-200">
+                      Powered by real API setup with Inngest
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm text-gray-500 mb-2">Tags</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedNodeData.tags.map((tag, i) => (
+                      <span key={i} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <p className="text-gray-500">Author</p>
+                      <p className="font-medium text-gray-900">{selectedNodeData.author}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Created</p>
+                      <p className="font-medium text-gray-900">{selectedNodeData.date}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-gray-500">Connections</p>
+                      <p className="font-medium text-cyan-600">{selectedNodeData.connections} linked nodes</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </section>
@@ -355,21 +822,30 @@ const DemoSection: FC = () => {
 // College Logo Bar Component
 const CollegeLogoBar: FC = () => {
   const colleges = [
-    "MIT", "Stanford", "Harvard", "Berkeley", "Carnegie Mellon", "Princeton", "Yale", "Columbia"
+    { name: "Rutgers", logo: "/logos/Rutgers_Scarlet_Knights_logo.svg.png" },
+    { name: "Rowan", logo: "/logos/rowan-university-profs-logo-png_seeklogo-454657.png" },
+    { name: "NJIT", logo: "/logos/New_Jersey_IT_logo.svg.png" },
+    { name: "Penn State", logo: "/logos/penn-state-shield.jpg" },
+    { name: "Indiana", logo: "/logos/indiana_hoosiers_2002-pres.webp" },
+    { name: "Seton Hall", logo: "/logos/seton_hall_pirates_2009-pres.webp" },
   ];
   
   // Duplicate for seamless loop
   const collegeList = [...colleges, ...colleges];
 
   return (
-    <div className="relative overflow-hidden bg-white py-12 h-24">
-      <div className="flex animate-scroll whitespace-nowrap">
+    <div className="relative overflow-hidden py-8 h-40 w-full">
+      <div className="flex animate-scroll whitespace-nowrap items-center">
         {collegeList.map((college, i) => (
           <div
             key={i}
-            className="mx-8 flex-shrink-0 text-2xl md:text-3xl font-bold text-gray-700 opacity-60 hover:opacity-100 transition-opacity"
+            className="mx-2 flex-shrink-0 h-24 w-[220px] flex items-center justify-center"
           >
-            {college}
+            <img 
+              src={college.logo} 
+              alt={`${college.name} logo`}
+              className="h-24 w-auto object-contain max-w-[200px] opacity-100"
+            />
           </div>
         ))}
       </div>
@@ -420,7 +896,32 @@ const LandingPage: FC = () => {
       100% { transform: translateX(-50%); }
     }
     .animate-scroll {
-      animation: scroll 20s linear infinite;
+      animation: scroll 30s linear infinite;
+    }
+    @keyframes glow-pulse {
+      0%, 100% { box-shadow: 0 0 12px rgba(34, 211, 238, 0.6); }
+      50% { box-shadow: 0 0 20px rgba(34, 211, 238, 0.9), 0 0 30px rgba(34, 211, 238, 0.5); }
+    }
+    .glow-effect {
+      animation: glow-pulse 2s ease-in-out infinite;
+    }
+    @keyframes slide-in {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    .animate-slide-in {
+      animation: slide-in 0.3s ease-out;
+    }
+    @media (max-width: 1024px) {
+      .college-logo-container {
+        width: calc(100% / 4);
+      }
     }
   `}</style>
         <title>Mesh</title>
@@ -436,7 +937,7 @@ const LandingPage: FC = () => {
           <span className="font-semibold text-xl text-gray-900">Mesh</span>
         </div>
         <button onClick={() => router.push("/contact")} className="bg-black text-white px-6 py-3 rounded-full font-semibold hover:scale-105 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-purple-600 transition duration-300 shadow-lg">
-          Get Started with Us Today
+          Get Started
         </button>
       </header>
 
@@ -449,7 +950,7 @@ const LandingPage: FC = () => {
             Mesh turns docs, threads, meetings, and whiteboards into a dynamic knowledge graph you can query.
           </div>
           <button onClick={() => router.push("/contact")} className="bg-black text-white px-6 py-3 rounded-full font-semibold hover:scale-105 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-purple-600 transition duration-300 shadow-lg">
-            Get Started with Us Today
+            Get Started
           </button>
         </div>
       </section>
@@ -458,7 +959,7 @@ const LandingPage: FC = () => {
       <DemoSection />
 
       {/* Features Section */}
-      <section className="w-full bg-white px-4 py-20 animate-slide-up">
+      <section className="w-full bg-gradient-to-br from-purple-200 via-blue-200 to-pink-200 animate-gradient-mesh px-4 py-20 animate-slide-up">
         <div className="text-2xl md:text-3xl font-bold text-center text-gray-900  mb-10 ">
           Capabilities
         </div>
@@ -473,7 +974,7 @@ const LandingPage: FC = () => {
       </section>
 
       {/* College Adoption Section */}
-      <section className="w-full bg-gradient-to-br from-purple-200 via-blue-200 to-pink-200 animate-gradient-mesh px-4 py-20">
+      <section className="w-full bg-white px-4 py-20">
         <div className="max-w-6xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
             Trusted by teams at leading institutions
@@ -516,6 +1017,30 @@ const LandingPage: FC = () => {
 
       <style jsx global>{`
         .react-flow__handle { opacity: 0; }
+        .react-flow-container {
+          position: relative;
+        }
+        .react-flow__viewport {
+          pointer-events: none;
+        }
+        .react-flow__pane,
+        .react-flow__renderer {
+          pointer-events: none;
+        }
+        .react-flow__node {
+          pointer-events: auto;
+          cursor: pointer;
+        }
+        .react-flow-container:hover .react-flow__viewport,
+        .react-flow-container:hover .react-flow__pane,
+        .react-flow-container:hover .react-flow__renderer {
+          pointer-events: auto;
+        }
+        .react-flow-container:active .react-flow__viewport,
+        .react-flow-container:active .react-flow__pane,
+        .react-flow-container:active .react-flow__renderer {
+          pointer-events: auto;
+        }
       `}</style>
     </div>
   );
