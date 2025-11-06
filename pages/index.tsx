@@ -38,6 +38,29 @@ const EmptyNode = () => (
   />
 );
 
+// Demo Knowledge Graph Node Component
+const KnowledgeNode = ({ data }: { data: { label: string; type: string; highlight?: boolean } }) => {
+  const colors: Record<string, string> = {
+    document: "bg-blue-500",
+    meeting: "bg-purple-500",
+    note: "bg-green-500",
+    whiteboard: "bg-orange-500",
+    code: "bg-pink-500",
+  };
+  
+  return (
+    <div
+      className={`${colors[data.type] || "bg-gray-500"} rounded-lg p-3 shadow-lg transition-all duration-300 ${
+        data.highlight ? "scale-125 ring-4 ring-yellow-400 z-10" : ""
+      }`}
+      style={{ minWidth: "100px", maxWidth: "150px" }}
+    >
+      <div className="text-white text-xs font-semibold">{data.label}</div>
+      <div className="text-white/70 text-[10px] mt-1">{data.type}</div>
+    </div>
+  );
+};
+
 // 🔤 Typewriter hook (typing + deleting + pause + blink)
 const useTypewriter = (
   phrases: string[],
@@ -171,6 +194,189 @@ const HeroBackgroundFlow = () => {
   );
 };
 
+// Demo Section Component
+const DemoSection: FC = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const demoNodeTypes = useMemo(() => ({ knowledge: KnowledgeNode }), []);
+  
+  const demoNodes = useMemo(() => {
+    const nodes = [
+      { id: "1", data: { label: "Research Paper", type: "document" }, position: { x: 50, y: 50 } },
+      { id: "2", data: { label: "Team Meeting", type: "meeting" }, position: { x: 200, y: 50 } },
+      { id: "3", data: { label: "Project Notes", type: "note" }, position: { x: 350, y: 50 } },
+      { id: "4", data: { label: "Design Board", type: "whiteboard" }, position: { x: 50, y: 150 } },
+      { id: "5", data: { label: "Code Review", type: "code" }, position: { x: 200, y: 150 } },
+      { id: "6", data: { label: "API Docs", type: "document" }, position: { x: 350, y: 150 } },
+    ];
+    
+    return nodes.map((node) => ({
+      ...node,
+      type: "knowledge",
+      data: {
+        ...node.data,
+        highlight: searchQuery && node.data.label.toLowerCase().includes(searchQuery.toLowerCase()),
+      },
+    }));
+  }, [searchQuery]);
+
+  const demoEdges = useMemo(() => [
+    { id: "e1-2", source: "1", target: "2", animated: true, style: { stroke: "#3b82f6" } },
+    { id: "e2-3", source: "2", target: "3", animated: true, style: { stroke: "#8b5cf6" } },
+    { id: "e3-4", source: "3", target: "4", animated: true, style: { stroke: "#10b981" } },
+    { id: "e4-5", source: "4", target: "5", animated: true, style: { stroke: "#f97316" } },
+    { id: "e5-6", source: "5", target: "6", animated: true, style: { stroke: "#ec4899" } },
+    { id: "e1-4", source: "1", target: "4", animated: true, style: { stroke: "#6366f1" } },
+  ], []);
+
+  const mobileNodes = useMemo(() => {
+    const nodes = [
+      { id: "m1", data: { label: "Research Paper", type: "document" }, position: { x: 25, y: 30 } },
+      { id: "m2", data: { label: "Team Meeting", type: "meeting" }, position: { x: 25, y: 100 } },
+      { id: "m3", data: { label: "Project Notes", type: "note" }, position: { x: 25, y: 170 } },
+      { id: "m4", data: { label: "Design Board", type: "whiteboard" }, position: { x: 25, y: 240 } },
+    ];
+    
+    return nodes.map((node) => ({
+      ...node,
+      type: "knowledge",
+      data: {
+        ...node.data,
+        highlight: searchQuery && node.data.label.toLowerCase().includes(searchQuery.toLowerCase()),
+      },
+    }));
+  }, [searchQuery]);
+
+  const mobileEdges = useMemo(() => [
+    { id: "me1-2", source: "m1", target: "m2", animated: true, style: { stroke: "#3b82f6" } },
+    { id: "me2-3", source: "m2", target: "m3", animated: true, style: { stroke: "#8b5cf6" } },
+    { id: "me3-4", source: "m3", target: "m4", animated: true, style: { stroke: "#10b981" } },
+  ], []);
+
+  const [mobileFlowNodes, setMobileFlowNodes, onMobileNodesChange] = useNodesState(mobileNodes);
+  const [mobileFlowEdges, setMobileFlowEdges, onMobileEdgesChange] = useEdgesState(mobileEdges);
+  const [desktopFlowNodes, setDesktopFlowNodes, onDesktopNodesChange] = useNodesState(demoNodes);
+  const [desktopFlowEdges, setDesktopFlowEdges, onDesktopEdgesChange] = useEdgesState(demoEdges);
+
+  useEffect(() => {
+    setMobileFlowNodes(mobileNodes);
+  }, [mobileNodes, setMobileFlowNodes]);
+
+  useEffect(() => {
+    setDesktopFlowNodes(demoNodes);
+  }, [demoNodes, setDesktopFlowNodes]);
+
+  return (
+    <section className="w-full bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 px-4 py-20">
+      <div className="max-w-7xl mx-auto">
+        <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-4">
+          See It In Action
+        </h2>
+        <p className="text-lg text-center text-gray-600 mb-12 max-w-2xl mx-auto">
+          Experience how your knowledge connects across devices
+        </p>
+        
+        {/* Interactive Search Bar */}
+        <div className="max-w-2xl mx-auto mb-12">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search your knowledge graph..."
+              className="w-full px-6 py-4 rounded-full border-2 border-gray-200 focus:border-indigo-500 focus:outline-none text-gray-900 shadow-lg transition-all duration-300"
+            />
+            <Search className="absolute right-6 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+          </div>
+        </div>
+
+        {/* Side-by-side Demo */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Mobile View */}
+          <div className="bg-white rounded-2xl shadow-2xl p-6 overflow-hidden">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <span className="ml-4 text-xs text-gray-500 font-semibold">Mobile View</span>
+            </div>
+            <div className="bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg h-[400px] relative overflow-hidden">
+              <ReactFlow
+                nodes={mobileFlowNodes}
+                edges={mobileFlowEdges}
+                nodeTypes={demoNodeTypes}
+                onNodesChange={onMobileNodesChange}
+                onEdgesChange={onMobileEdgesChange}
+                fitView
+                zoomOnScroll={false}
+                zoomOnPinch={false}
+                panOnScroll={false}
+                panOnDrag={false}
+                nodesDraggable={false}
+                className="bg-transparent"
+              >
+                <Controls showZoom={false} showFitView={false} showInteractive={false} />
+              </ReactFlow>
+            </div>
+          </div>
+
+          {/* Desktop View */}
+          <div className="bg-white rounded-2xl shadow-2xl p-6 overflow-hidden">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <span className="ml-4 text-xs text-gray-500 font-semibold">Desktop View</span>
+            </div>
+            <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg h-[400px] relative overflow-hidden">
+              <ReactFlow
+                nodes={desktopFlowNodes}
+                edges={desktopFlowEdges}
+                nodeTypes={demoNodeTypes}
+                onNodesChange={onDesktopNodesChange}
+                onEdgesChange={onDesktopEdgesChange}
+                fitView
+                zoomOnScroll={false}
+                zoomOnPinch={false}
+                panOnScroll={false}
+                panOnDrag={false}
+                nodesDraggable={false}
+                className="bg-transparent"
+              >
+                <Controls showZoom={false} showFitView={false} showInteractive={false} />
+              </ReactFlow>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// College Logo Bar Component
+const CollegeLogoBar: FC = () => {
+  const colleges = [
+    "MIT", "Stanford", "Harvard", "Berkeley", "Carnegie Mellon", "Princeton", "Yale", "Columbia"
+  ];
+  
+  // Duplicate for seamless loop
+  const collegeList = [...colleges, ...colleges];
+
+  return (
+    <div className="relative overflow-hidden bg-white py-12 h-24">
+      <div className="flex animate-scroll whitespace-nowrap">
+        {collegeList.map((college, i) => (
+          <div
+            key={i}
+            className="mx-8 flex-shrink-0 text-2xl md:text-3xl font-bold text-gray-700 opacity-60 hover:opacity-100 transition-opacity"
+          >
+            {college}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const LandingPage: FC = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [showTop, setShowTop] = useState(false);
@@ -208,6 +414,14 @@ const LandingPage: FC = () => {
     /* blinking cursor */
     @keyframes type-blink { 0%, 49%, 100% { opacity: 1; } 50% { opacity: 0; } }
     .type-cursor { display:inline-block; width: .5ch; margin-left: 2px; animation: type-blink 1s steps(1) infinite; }
+    
+    @keyframes scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .animate-scroll {
+      animation: scroll 20s linear infinite;
+    }
   `}</style>
         <title>Mesh</title>
         <meta name="description" content="Mesh — AI-powered team knowledge system" />
@@ -221,8 +435,8 @@ const LandingPage: FC = () => {
           <img src="/logo.png" alt="Mesh Logo" className="h-12 w-12" />
           <span className="font-semibold text-xl text-gray-900">Mesh</span>
         </div>
-        <button onClick={() => router.push("/waitlist")} className="bg-black text-white px-6 py-3 rounded-full font-semibold hover:scale-105 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-purple-600 transition duration-300 shadow-lg">
-          Get Started
+        <button onClick={() => router.push("/contact")} className="bg-black text-white px-6 py-3 rounded-full font-semibold hover:scale-105 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-purple-600 transition duration-300 shadow-lg">
+          Get Started with Us Today
         </button>
       </header>
 
@@ -234,11 +448,14 @@ const LandingPage: FC = () => {
           <div className="text-lg md:text-xl text-center text-gray-600 max-w-2xl mb-6 ">
             Mesh turns docs, threads, meetings, and whiteboards into a dynamic knowledge graph you can query.
           </div>
-          <button onClick={() => router.push("/waitlist")} className="bg-black text-white px-6 py-3 rounded-full font-semibold hover:scale-105 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-purple-600 transition duration-300 shadow-lg">
-            Get Started
+          <button onClick={() => router.push("/contact")} className="bg-black text-white px-6 py-3 rounded-full font-semibold hover:scale-105 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-purple-600 transition duration-300 shadow-lg">
+            Get Started with Us Today
           </button>
         </div>
       </section>
+
+      {/* Demo Section */}
+      <DemoSection />
 
       {/* Features Section */}
       <section className="w-full bg-white px-4 py-20 animate-slide-up">
@@ -252,6 +469,19 @@ const LandingPage: FC = () => {
           <FeatureCard title="Knowledge Graph" description="Your workspace becomes a dynamic map — like multiplayer Obsidian — built from your team’s shared memory." icon={<Brain size={40} />} />
           <FeatureCard title="Ask Anything" description="GPT-powered assistant tuned to your content answers questions with precision and references." icon={<MessageCircle size={40} />} />
           <FeatureCard title="Built for Search" description="Find anything fast — search by topic, person, date, or keyword. Mesh connects all the dots." icon={<Search size={40} />} />
+        </div>
+      </section>
+
+      {/* College Adoption Section */}
+      <section className="w-full bg-gradient-to-br from-purple-200 via-blue-200 to-pink-200 animate-gradient-mesh px-4 py-20">
+        <div className="max-w-6xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            Trusted by teams at leading institutions
+          </h2>
+          <p className="text-lg md:text-xl text-gray-700 mb-12">
+            Adopted by research teams, academics, and hackathons at various colleges
+          </p>
+          <CollegeLogoBar />
         </div>
       </section>
 
